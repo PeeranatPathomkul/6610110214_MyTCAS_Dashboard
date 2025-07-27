@@ -6,7 +6,7 @@ A comprehensive system for collecting, analyzing, and visualizing Computer Engin
 
 ```bash
 # Clone and setup
-git clone <https://github.com/PeeranatPathomkul/6610110214_MyTCAS_Dashboard.git>
+git clone https://github.com/PeeranatPathomkul/6610110214_MyTCAS_Dashboard.git
 cd 6610110214_MyTCAS_Dashboard
 pip install -r requirements-all.txt
 playwright install chromium
@@ -16,6 +16,17 @@ python dashboard3.py
 # Open http://127.0.0.1:8050/ in your browser
 ```
 
+Run web scraping
+```bash
+# Clone and setup
+git clone https://github.com/PeeranatPathomkul/6610110214_MyTCAS_Dashboard.git
+cd 6610110214_MyTCAS_Dashboard
+pip install -r requirements-all.txt
+playwright install chromium
+
+# Run the code
+python read_file3.py
+```
 ## 📁 Project Structure
 
 ```
