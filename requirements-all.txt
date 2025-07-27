@@ -1,0 +1,31 @@
+# TCAS Dashboard - Complete Dependencies
+# Includes both dashboard and scraping capabilities
+
+# Core Dashboard Framework
+dash>=2.14.0
+dash-table>=5.0.0
+dash-bootstrap-components>=1.4.0
+
+# Data Processing
+pandas>=1.5.0
+numpy>=1.24.0
+
+# Visualization
+plotly>=5.15.0
+
+# Excel File Support
+openpyxl>=3.1.0
+
+# Web Scraping & Browser Automation
+playwright>=1.40.0
+beautifulsoup4>=4.12.0
+requests>=2.31.0
+
+# HTML/XML Processing
+lxml>=4.9.0
+
+# HTTP Session Management
+urllib3>=2.0.0
+
+# Additional utilities
+python-dateutil>=2.8.0
