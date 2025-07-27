@@ -9,7 +9,7 @@ import json
 from datetime import datetime
 import requests
 
-class UltimateTCASScraper:
+class TCASScraper:
     def __init__(self):
         self.base_url = "https://www.mytcas.com"
         self.programs_data = []
@@ -60,49 +60,9 @@ class UltimateTCASScraper:
         except Exception as e:
             print(f"⚠️ Warning: {e}")
 
-    async def multi_method_data_collection(self):
-        """ใช้หลายวิธีในการรวบรวมข้อมูล"""
-        print("🎯 เริ่มการรวบรวมข้อมูลด้วยหลายวิธี...")
-        
-        all_links = []
-        
-        # วิธีที่ 1: ค้นหาผ่านเว็บไซต์
-        print("\n📍 วิธีที่ 1: ค้นหาผ่านเว็บไซต์")
-        web_links = await self.search_via_website()
-        all_links.extend(web_links)
-        print(f"   ผลลัพธ์: {len(web_links)} ลิงก์")
-        
-        # วิธีที่ 2: วิเคราะห์โครงสร้างเว็บ
-        print("\n📍 วิธีที่ 2: วิเคราะห์โครงสร้างเว็บ")
-        structure_links = await self.analyze_website_structure()
-        all_links.extend(structure_links)
-        print(f"   ผลลัพธ์: {len(structure_links)} ลิงก์")
-        
-        # วิธีที่ 3: ลอง URL patterns
-        print("\n📍 วิธีที่ 3: ลอง URL patterns")
-        pattern_links = await self.try_url_patterns()
-        all_links.extend(pattern_links)
-        print(f"   ผลลัพธ์: {len(pattern_links)} ลิงก์")
-        
-        # วิธีที่ 4: ใช้ BeautifulSoup
-        print("\n📍 วิธีที่ 4: ใช้ BeautifulSoup")
-        bs_links = await self.beautifulsoup_method()
-        all_links.extend(bs_links)
-        print(f"   ผลลัพธ์: {len(bs_links)} ลิงก์")
-        
-        # รวมและลบซ้ำ
-        unique_links = list(set(all_links))
-        print(f"\n📊 รวมทั้งหมด: {len(unique_links)} ลิงก์ (ไม่ซ้ำ)")
-        
-        # ดึงข้อมูลจากทุกลิงก์
-        if unique_links:
-            await self.extract_comprehensive_data(unique_links)
-        else:
-            print("❌ ไม่พบลิงก์ - ใช้ข้อมูลตัวอย่าง")
-            await self.use_sample_data()
-
     async def search_via_website(self):
         """ค้นหาผ่านเว็บไซต์"""
+        print("🎯 เริ่มการรวบรวมข้อมูลผ่านเว็บไซต์...")
         links = []
         
         try:
@@ -127,7 +87,15 @@ class UltimateTCASScraper:
         except Exception as e:
             print(f"   ❌ ไม่สามารถค้นหาผ่านเว็บไซต์: {e}")
         
-        return links
+        # รวมและลบซ้ำ
+        unique_links = list(set(links))
+        print(f"📊 รวมทั้งหมด: {len(unique_links)} ลิงก์ (ไม่ซ้ำ)")
+        
+        # ดึงข้อมูลจากทุกลิงก์
+        if unique_links:
+            await self.extract_comprehensive_data(unique_links)
+        else:
+            print("❌ ไม่พบลิงก์")
 
     async def perform_search(self, search_term):
         """ดำเนินการค้นหา"""
@@ -170,116 +138,6 @@ class UltimateTCASScraper:
         
         return found_links
 
-    async def analyze_website_structure(self):
-        """วิเคราะห์โครงสร้างเว็บ"""
-        links = []
-        
-        try:
-            await self.page.goto(self.base_url, wait_until='networkidle')
-            await self.page.wait_for_timeout(2000)
-            
-            # หาเมนูหลัก
-            menu_selectors = [
-                'nav a', '.menu a', '.navbar a', 'header a',
-                '.main-menu a', '.navigation a', '.nav-link'
-            ]
-            
-            for selector in menu_selectors:
-                try:
-                    elements = await self.page.query_selector_all(selector)
-                    for element in elements:
-                        href = await element.get_attribute('href')
-                        text = await element.inner_text()
-                        
-                        if href and self.is_relevant_link(text, href):
-                            full_url = urljoin(self.base_url, href)
-                            links.append(full_url)
-                except:
-                    continue
-                    
-            # หาลิงก์ที่มีคำสำคัญ
-            all_links = await self.page.query_selector_all('a[href]')
-            for link in all_links:
-                try:
-                    href = await link.get_attribute('href')
-                    text = await link.inner_text()
-                    
-                    if href and self.is_relevant_link(text, href):
-                        full_url = urljoin(self.base_url, href)
-                        if full_url not in links:
-                            links.append(full_url)
-                except:
-                    continue
-                    
-        except Exception as e:
-            print(f"   ❌ ไม่สามารถวิเคราะห์โครงสร้าง: {e}")
-        
-        return links
-
-    async def try_url_patterns(self):
-        """ลอง URL patterns"""
-        links = []
-        
-        patterns = [
-            f"{self.base_url}/programs",
-            f"{self.base_url}/courses", 
-            f"{self.base_url}/search?q=computer",
-            f"{self.base_url}/search?q=engineering",
-            f"{self.base_url}/university",
-            f"{self.base_url}/faculty",
-            f"{self.base_url}/program",
-            f"{self.base_url}/course"
-        ]
-        
-        for pattern in patterns:
-            try:
-                await self.page.goto(pattern, wait_until='networkidle', timeout=10000)
-                
-                # ตรวจสอบว่าเป็นหน้าที่มีอยู่จริง
-                content = await self.page.content()
-                if "404" not in content and "not found" not in content.lower():
-                    page_links = await self.page.query_selector_all('a[href]')
-                    for link in page_links:
-                        try:
-                            href = await link.get_attribute('href')
-                            text = await link.inner_text()
-                            
-                            if href and self.is_relevant_link(text, href):
-                                full_url = urljoin(self.base_url, href)
-                                links.append(full_url)
-                        except:
-                            continue
-                            
-            except Exception as e:
-                print(f"     ❌ ไม่พบ: {pattern}")
-                continue
-        
-        return links
-
-    async def beautifulsoup_method(self):
-        """ใช้ BeautifulSoup ดึงข้อมูล"""
-        links = []
-        
-        try:
-            response = self.session.get(self.base_url, timeout=10)
-            if response.status_code == 200:
-                soup = BeautifulSoup(response.content, 'html.parser')
-                
-                # หาลิงก์ทั้งหมด
-                all_links = soup.find_all('a', href=True)
-                for link in all_links:
-                    href = link['href']
-                    text = link.get_text(strip=True)
-                    
-                    if self.is_relevant_link(text, href):
-                        full_url = urljoin(self.base_url, href)
-                        links.append(full_url)
-                        
-        except Exception as e:
-            print(f"   ❌ BeautifulSoup ไม่สำเร็จ: {e}")
-        
-        return links
-
     def is_relevant_link(self, text, href):
         """ตรวจสอบว่าลิงก์เกี่ยวข้องหรือไม่"""
         if not text or not href:
@@ -317,23 +175,20 @@ class UltimateTCASScraper:
                     program_data = await self.extract_with_requests(link)
                 
                 if program_data:
-                    # เพิ่มชื่อ URL ที่สวยงาม
-                    program_data['url_title'] = self.generate_url_title(program_data, link)
-                    
                     self.programs_data.append(program_data)
                     success_count += 1
                     
                     print(f"    ✅ สำเร็จ!")
                     print(f"       🏫 {program_data['มหาวิทยาลัย']}")
-                    print(f"       📚 {program_data['หลักสูตร'][:40]}...")
-                    print(f"       💰 {program_data['ค่าเทอม']:,} บาท" if program_data['ค่าเทอม'] else "       💰 ไม่พบค่าเทอม")
+                    print(f"       📚 {program_data['หลักสูตร'][:50]}...")
+                    print(f"       💰 {program_data['ค่าเทอม']}")
                 else:
                     print(f"    ⚠️ ไม่พบข้อมูล")
                 
                 await asyncio.sleep(0.5)  # หน่วงเวลา
                 
             except Exception as e:
-                print(f"    ❌ ข้อผิดพลาด: {str(e)[:40]}...")
+                print(f"    ❌ ข้อผิดพลาด: {str(e)[:50]}...")
                 continue
         
         print(f"\n🎯 สรุป: ดึงข้อมูลสำเร็จ {success_count}/{len(links)} ลิงก์")
@@ -369,7 +224,7 @@ class UltimateTCASScraper:
             program_data = {
                 'มหาวิทยาลัย': self.extract_university(soup, url),
                 'หลักสูตร': self.extract_program_name(soup),
-                'ค่าเทอม': self.extract_tuition_info(soup),  # 👈 เปลี่ยนเป็น 'ค่าเทอม' ให้ตรงกับที่เรียกใช้
+                'ค่าเทอม': self.extract_tuition_info(soup),
                 'URL': url
             }
 
@@ -382,12 +237,11 @@ class UltimateTCASScraper:
         except Exception as e:
             return None
 
-
     def extract_university(self, soup, url):
         """ดึงชื่อมหาวิทยาลัยจาก alt ของโลโก้"""
         print(f"    🔍 กำลังหาชื่อมหาวิทยาลัย...")
 
-        # 1. หา logo ที่อยู่ใน class h-brand แล้วดึง alt
+        # หา logo ที่อยู่ใน class h-brand แล้วดึง alt
         img = soup.select_one('span.h-brand img[alt]')
         if img:
             alt_text = img.get('alt', '').strip()
@@ -395,10 +249,8 @@ class UltimateTCASScraper:
                 print(f"    ✅ พบจาก <img alt>: {alt_text}")
                 return alt_text
 
-        # 2. เผื่อกรณี fallback อื่นๆ ถ้าต้องการให้เพิ่มอีก
         print("    ❌ ไม่พบจาก <img alt>")
         return 'ไม่ระบุ'
-
 
     def extract_program_name(self, soup):
         """ดึงชื่อหลักสูตร"""
@@ -453,57 +305,8 @@ class UltimateTCASScraper:
         print("    ❌ ไม่พบข้อมูลค่าใช้จ่าย")
         return "ไม่พบข้อมูล"
 
-    def generate_url_title(self, program_data, url):
-        """ใช้ URL จริงแทนการสร้างชื่อสวยงาม"""
-        return url
-
-    async def use_sample_data(self):
-        """ใช้ข้อมูลตัวอย่างเมื่อไม่พบข้อมูลจริง"""
-        print("📝 ใช้ข้อมูลตัวอย่างเพื่อแสดงการทำงาน...")
-        
-        sample_data = [
-            {
-                'มหาวิทยาลัย': 'จุฬาลงกรณ์มหาวิทยาลัย',
-                'หลักสูตร': 'วศ.บ. วิศวกรรมคอมพิวเตอร์และเทคโนโลยีดิจิทัล',
-                'ค่าเทอม': 35000,
-                'URL': 'https://www.mytcas.com/program/chula-computer',
-                'url_title': 'จุฬา - วิศวกรรมคอมพิวเตอร์และเทคโนโลยีดิจิทัล'
-            },
-            {
-                'มหาวิทยาลัย': 'มหาวิทยาลัยเกษตรศาสตร์',
-                'หลักสูตร': 'วศ.บ. วิศวกรรมคอมพิวเตอร์',
-                'ค่าเทอม': 28000,
-                'URL': 'https://www.mytcas.com/program/ku-computer',
-                'url_title': 'เกษตรศาสตร์ - วิศวกรรมคอมพิวเตอร์'
-            },
-            {
-                'มหาวิทยาลัย': 'มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าธนบุรี',
-                'หลักสูตร': 'วศ.บ. วิศวกรรมปัญญาประดิษฐ์',
-                'ค่าเทอม': 32000,
-                'URL': 'https://www.mytcas.com/program/kmutt-ai',
-                'url_title': 'พระจอมเกล้าธนบุรี - วิศวกรรมปัญญาประดิษฐ์'
-            },
-            {
-                'มหาวิทยาลัย': 'มหาวิทยาลัยธรรมศาสตร์',
-                'หลักสูตร': 'วศ.บ. วิศวกรรมคอมพิวเตอร์',
-                'ค่าเทอม': 30000,
-                'URL': 'https://www.mytcas.com/program/tu-computer',
-                'url_title': 'ธรรมศาสตร์ - วิศวกรรมคอมพิวเตอร์'
-            },
-            {
-                'มหาวิทยาลัย': 'มหาวิทยาลัยมหิดล',
-                'หลักสูตร': 'วท.บ. วิทยาการคอมพิวเตอร์',
-                'ค่าเทอม': 45000,
-                'URL': 'https://www.mytcas.com/program/mahidol-cs',
-                'url_title': 'มหิดล - วิทยาการคอมพิวเตอร์'
-            }
-        ]
-        
-        self.programs_data.extend(sample_data)
-        print(f"✅ เพิ่มข้อมูลตัวอย่าง {len(sample_data)} รายการ")
-
-    def save_to_excel_with_smart_urls(self, filename='ข้อมูลสมบูรณ์_TCAS_วิศวคอม.xlsx'):
-        """บันทึกไฟล์ Excel พร้อม URL ที่แสดงชื่อสวยงาม"""
+    def save_to_excel(self, filename='ข้อมูล_TCAS_วิศวคอม.xlsx'):
+        """บันทึกไฟล์ Excel"""
         if not self.programs_data:
             print("❌ ไม่มีข้อมูลให้บันทึก")
             return
@@ -516,17 +319,16 @@ class UltimateTCASScraper:
             row = {
                 'มหาวิทยาลัย': program.get('มหาวิทยาลัย', 'ไม่ระบุ'),
                 'หลักสูตร': program.get('หลักสูตร', 'ไม่ระบุ'),
-                'ค่าเทอม': program.get('ค่าเทอม', None),
-                'URL': program.get('URL', '')  # ใช้ URL จริง
+                'ค่าเทอม': program.get('ค่าเทอม', 'ไม่พบข้อมูล'),
+                'URL': program.get('URL', '')
             }
             df_data.append(row)
         
         df = pd.DataFrame(df_data)
-        df = df.sort_values(['มหาวิทยาลัย', 'ค่าเทอม'], na_position='last')
+        df = df.sort_values(['มหาวิทยาลัย'], na_position='last')
         
         # บันทึก Excel
         with pd.ExcelWriter(filename, engine='openpyxl') as writer:
-            # เขียนข้อมูลหลัก
             df.to_excel(writer, sheet_name='ข้อมูลหลักสูตร', index=False)
             
             # เพิ่ม hyperlink
@@ -538,107 +340,58 @@ class UltimateTCASScraper:
                 if url and url.startswith('http'):
                     cell = worksheet.cell(row=row_idx, column=4)  # Column D
                     cell.hyperlink = url
-                    cell.value = url  # แสดง URL จริง
+                    cell.value = url
                     cell.style = "Hyperlink"
-            
-            # สร้างสถิติ
-            stats = self.create_stats(df)
-            stats_df = pd.DataFrame(stats)
-            stats_df.to_excel(writer, sheet_name='สถิติสรุป', index=False)
             
             # ปรับความกว้างคอลัมน์
             worksheet.column_dimensions['A'].width = 40  # มหาวิทยาลัย
             worksheet.column_dimensions['B'].width = 60  # หลักสูตร
-            worksheet.column_dimensions['C'].width = 15  # ค่าเทอม
+            worksheet.column_dimensions['C'].width = 20  # ค่าเทอม
             worksheet.column_dimensions['D'].width = 60  # URL
-            
-            # ปรับสถิติ
-            stats_sheet = writer.sheets['สถิติสรุป']
-            stats_sheet.column_dimensions['A'].width = 30
-            stats_sheet.column_dimensions['B'].width = 60
         
         print(f"✅ บันทึกข้อมูลลงไฟล์ {filename}")
-        print("🔗 คอลัมน์ 'URL' สามารถคลิกได้เลย และแสดง URL จริง!")
+        print("🔗 คอลัมน์ 'URL' สามารถคลิกได้เลย!")
         
         self.print_summary(df)
-
-    def create_stats(self, df):
-        """สร้างสถิติ"""
-        stats = []
-        
-        stats.append({'รายการ': 'จำนวนโปรแกรมทั้งหมด', 'ค่า': len(df)})
-        stats.append({'รายการ': 'จำนวนมหาวิทยาลัย', 'ค่า': df['มหาวิทยาลัย'].nunique()})
-        
-        fee_data = df['ค่าเทอม'].dropna()
-        if len(fee_data) > 0:
-            stats.extend([
-                {'รายการ': 'มีข้อมูลค่าเทอม', 'ค่า': len(fee_data)},
-                {'รายการ': 'ค่าเทอมเฉลี่ย (บาท)', 'ค่า': f"{fee_data.mean():,.0f}"},
-                {'รายการ': 'ค่าเทอมต่ำสุด (บาท)', 'ค่า': f"{fee_data.min():,.0f}"},
-                {'รายการ': 'ค่าเทอมสูงสุด (บาท)', 'ค่า': f"{fee_data.max():,.0f}"},
-            ])
-        
-        # Top มหาวิทยาลัย
-        top_unis = df[df['มหาวิทยาลัย'] != 'ไม่ระบุ']['มหาวิทยาลัย'].value_counts().head(5)
-        for i, (uni, count) in enumerate(top_unis.items(), 1):
-            stats.append({'รายการ': f'อันดับ {i}', 'ค่า': f"{uni} ({count} หลักสูตร)"})
-        
-        return stats
 
     def print_summary(self, df):
         """แสดงสรุปผล"""
         print(f"\n📈 สรุปผลการรวบรวมข้อมูล:")
-        print("=" * 70)
+        print("=" * 50)
         
         total = len(df)
-        with_fee = df['ค่าเทอม'].notna().sum()
         universities = df[df['มหาวิทยาลัย'] != 'ไม่ระบุ']['มหาวิทยาลัย'].nunique()
         
         print(f"📚 จำนวนหลักสูตรทั้งหมด: {total}")
         print(f"🏫 จำนวนมหาวิทยาลัย: {universities}")
-        print(f"💰 มีข้อมูลค่าเทอม: {with_fee}/{total}")
-        
-        if with_fee > 0:
-            fee_data = df['ค่าเทอม'].dropna()
-            print(f"💵 ค่าเทอมเฉลี่ย: {fee_data.mean():,.0f} บาท")
-            print(f"💳 ค่าเทอมต่ำสุด: {fee_data.min():,.0f} บาท")
-            print(f"💎 ค่าเทอมสูงสุด: {fee_data.max():,.0f} บาท")
         
         print(f"\n📋 ตัวอย่างข้อมูล:")
         display_df = df[['มหาวิทยาลัย', 'หลักสูตร', 'ค่าเทอม']].head(5)
         print(display_df.to_string(index=False))
 
 async def main():
-    scraper = UltimateTCASScraper()
+    scraper = TCASScraper()
     
     try:
-        print("🚀 ระบบดึงข้อมูล TCAS Ultimate Version")
-        print("=" * 70)
-        print("🎯 เป้าหมาย: ได้ข้อมูลครบ 4 รายการ พร้อม URL ที่แสดงชื่อสวยงาม")
-        print("🔧 วิธีการ: ใช้ 4 วิธีรวมกัน + ข้อมูลตัวอย่าง")
+        print("🚀 ระบบดึงข้อมูล TCAS")
+        print("=" * 50)
+        print("🎯 เป้าหมาย: หลักสูตรวิศวกรรมคอมพิวเตอร์และ AI")
         
         # เริ่มต้น browser
         await scraper.init_browser(headless=False, slow_mo=500)
         
-        # รวบรวมข้อมูล
-        await scraper.multi_method_data_collection()
+        # ค้นหาและรวบรวมข้อมูล
+        await scraper.search_via_website()
         
         print(f"\n✅ รวบรวมข้อมูลเสร็จ: {len(scraper.programs_data)} รายการ")
         
         # บันทึกข้อมูล
         if scraper.programs_data:
-            scraper.save_to_excel_with_smart_urls()
-            
-            # สำรองข้อมูล JSON
-            with open('ultimate_tcas_data.json', 'w', encoding='utf-8') as f:
-                json.dump(scraper.programs_data, f, ensure_ascii=False, indent=2)
-            print("✅ สำรองข้อมูลใน ultimate_tcas_data.json")
-            
+            scraper.save_to_excel()
         else:
             print("❌ ไม่พบข้อมูล")
         
         print("\n🎉 เสร็จสมบูรณ์!")
-        print("📊 ไฟล์ Excel พร้อม URL ที่แสดงชื่อสวยงามแล้ว!")
         print("⏳ รอ 10 วินาที...")
         await asyncio.sleep(10)
         
